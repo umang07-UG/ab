@@ -1,18 +1,27 @@
 from pathlib import Path
 import os
-from decouple import config, Csv
-import dj_database_url
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = config('SECRET_KEY', default='django-insecure-change-me-in-production')
+# ========================
+# SECURITY
+# ========================
+SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "change-this-in-production")
 
-DEBUG = config('DEBUG', default=False, cast=bool)
+DEBUG = False
 
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='127.0.0.1,localhost', cast=Csv())
+ALLOWED_HOSTS = [
+    "localhost",
+    "127.0.0.1",
+    ".railway.app"
+]
 
+# ========================
+# APPLICATIONS
+# ========================
 INSTALLED_APPS = [
     'myapp',
+
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -21,9 +30,13 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 ]
 
+# ========================
+# MIDDLEWARE
+# ========================
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
+
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -34,10 +47,13 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'myproject.urls'
 
+# ========================
+# TEMPLATES
+# ========================
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / "templates"],  # optional but recommended
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -51,56 +67,59 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'myproject.wsgi.application'
 
+# ========================
+# DATABASE
+# ========================
 DATABASES = {
-    'default': dj_database_url.config(
-        default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}"
-    )
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    }
 }
 
-AUTH_PASSWORD_VALIDATORS = [
-    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
-]
-
-LANGUAGE_CODE = 'en-us'
-TIME_ZONE = 'UTC'
-USE_I18N = True
-USE_TZ = True
-
+# ========================
+# STATIC FILES
+# ========================
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [BASE_DIR / 'myapp' / 'static']
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
+# ========================
+# MEDIA FILES
+# ========================
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+# ========================
+# SECURITY (SAFE VERSION)
+# ========================
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
 
+# ⚠️ Disable for now (Railway safe)
+CSRF_COOKIE_SECURE = False
+SESSION_COOKIE_SECURE = False
+SECURE_SSL_REDIRECT = False
+
+# Enable later when stable
+# SECURE_SSL_REDIRECT = True
+
+# ========================
+# AUTH SETTINGS
+# ========================
+LOGIN_URL = '/login/'
+LOGIN_REDIRECT_URL = '/main/'
+LOGOUT_REDIRECT_URL = '/login/'
+
+# ========================
+# LOGGING (SAFE)
+# ========================
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
-    'formatters': {
-        'custom': {'format': '%(asctime)s | %(levelname)s | %(message)s'},
-    },
-    'handlers': {
-        'file': {
-            'level': 'DEBUG',
-            'class': 'logging.FileHandler',
-            'filename': BASE_DIR / 'logs.txt',
-            'formatter': 'custom',
-        },
-    },
-    'loggers': {
-        'django': {'handlers': ['file'], 'level': 'DEBUG', 'propagate': True},
-    },
 }
 
-if not DEBUG:
-    CSRF_COOKIE_SECURE = True
-    SESSION_COOKIE_SECURE = True
-    SECURE_BROWSER_XSS_FILTER = True
-    SECURE_CONTENT_TYPE_NOSNIFF = True
-    SECURE_SSL_REDIRECT = True
+CSRF_TRUSTED_ORIGINS = [
+    "https://*.railway.app"
+]
