@@ -37,23 +37,39 @@ def home(request):
 
 def signup(request):
     if request.method == "POST":
-        email = request.POST.get('email')
-
-        if User.objects.filter(email=email).exists():
-            return render(request, 'signup.html', {"msg": "Email already exists"})
-
-        if request.POST.get('password') != request.POST.get('cpassword'):
-            return render(request, 'signup.html', {'msg': "Password and Confirm Password do not match"})
-
+        name      = request.POST.get('name', '').strip()
+        email     = request.POST.get('email', '').strip()
+        mobile    = request.POST.get('mobile', '').strip()
+        password  = request.POST.get('password', '')
+        cpassword = request.POST.get('cpassword', '')
         profile_image = request.FILES.get('profile_image')
 
-        User.objects.create(
-            name=request.POST.get('name'),
-            email=email,
-            mobile=request.POST.get('mobile'),
-            password=request.POST.get('password'),
-            profile_image=profile_image
-        )
+        if not name or not email or not password:
+            return render(request, 'signup.html', {'msg': "Name, email and password are required"})
+
+        if User.objects.filter(email=email).exists():
+            return render(request, 'signup.html', {'msg': "Email already exists"})
+
+        if password != cpassword:
+            return render(request, 'signup.html', {'msg': "Password and Confirm Password do not match"})
+
+        try:
+            mobile_int = int(mobile) if mobile else 0
+        except ValueError:
+            return render(request, 'signup.html', {'msg': "Mobile number must be numeric"})
+
+        try:
+            user = User(
+                name=name,
+                email=email,
+                mobile=mobile_int,
+                password=password,
+            )
+            if profile_image:
+                user.profile_image = profile_image
+            user.save()
+        except Exception as e:
+            return render(request, 'signup.html', {'msg': f"Account creation failed: {str(e)}"})
 
         return render(request, 'login.html', {'msg': "Sign Up Done"})
 
