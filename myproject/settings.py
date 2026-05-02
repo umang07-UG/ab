@@ -78,6 +78,12 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+ALLOWED_HOSTS = [
+    "localhost",
+    "127.0.0.1",
+    ".railway.app"
+]
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
