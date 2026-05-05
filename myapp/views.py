@@ -370,7 +370,7 @@ def admin_dashboard(request):
     try:
         return render(request, 'admin_dashboard.html')
     except Exception as e:
-        return JsonResponse({"error": str(e)}, status=500)
+        return render(request, 'admin_dashboard.html', {'error': str(e)})
 
 
 def admin_stats(request):
