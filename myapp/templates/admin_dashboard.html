@@ -1,0 +1,478 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚙️</text></svg>">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg: #080810;
+            --surface: rgba(255,255,255,0.04);
+            --border: rgba(255,255,255,0.08);
+            --text: #f0f0ff;
+            --muted: #6b7280;
+            --accent: #7c3aed;
+            --accent2: #4f46e5;
+            --success: #22c55e;
+            --warning: #f59e0b;
+            --error: #ef4444;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body::before, body::after {
+            content: '';
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(120px);
+            pointer-events: none;
+            z-index: 0;
+        }
+        body::before {
+            width: 500px; height: 500px;
+            background: radial-gradient(circle, rgba(124,58,237,0.15), transparent 70%);
+            top: -100px; left: -100px;
+        }
+        body::after {
+            width: 400px; height: 400px;
+            background: radial-gradient(circle, rgba(79,70,229,0.12), transparent 70%);
+            bottom: -80px; right: -80px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #7c3aed, #4f46e5);
+            color: white;
+            box-shadow: 0 4px 15px rgba(124,58,237,0.4);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(124,58,237,0.5);
+        }
+
+        .btn-secondary {
+            background: var(--surface);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255,255,255,0.07);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 16px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .stat-card h3 {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 10px;
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--accent);
+            margin-bottom: 8px;
+        }
+
+        .stat-change {
+            font-size: 12px;
+            color: var(--success);
+        }
+
+        .logs-section {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .logs-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .logs-header h2 {
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .filter-controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 8px 16px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: var(--text);
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .filter-btn:hover,
+        .filter-btn.active {
+            background: rgba(124,58,237,0.2);
+            border-color: rgba(124,58,237,0.5);
+            color: #c4b5fd;
+        }
+
+        .logs-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .logs-table thead {
+            border-bottom: 1px solid var(--border);
+        }
+
+        .logs-table th {
+            text-align: left;
+            padding: 12px;
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .logs-table td {
+            padding: 14px 12px;
+            border-bottom: 1px solid rgba(255,255,255,0.02);
+            font-size: 13px;
+        }
+
+        .logs-table tbody tr:hover {
+            background: rgba(124,58,237,0.08);
+        }
+
+        .log-time {
+            color: var(--muted);
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+
+        .log-level {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .log-level.info {
+            background: rgba(59,130,246,0.2);
+            color: #60a5fa;
+        }
+
+        .log-level.warning {
+            background: rgba(245,158,11,0.2);
+            color: #fbbf24;
+        }
+
+        .log-level.error {
+            background: rgba(239,68,68,0.2);
+            color: #f87171;
+        }
+
+        .log-level.debug {
+            background: rgba(139,92,246,0.2);
+            color: #c4b5fd;
+        }
+
+        .log-message {
+            color: var(--text);
+            word-break: break-word;
+            max-width: 600px;
+        }
+
+        .log-source {
+            display: inline-block;
+            padding: 2px 8px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 6px;
+            font-size: 11px;
+            color: var(--muted);
+            font-weight: 500;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: var(--muted);
+        }
+
+        .empty-state i {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+        }
+
+        .pagination button {
+            padding: 8px 12px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+
+        .pagination button:hover {
+            background: rgba(124,58,237,0.2);
+            border-color: rgba(124,58,237,0.5);
+        }
+
+        .pagination button.active {
+            background: linear-gradient(135deg, #7c3aed, #4f46e5);
+            border-color: transparent;
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 16px;
+            }
+
+            .logs-table {
+                font-size: 12px;
+            }
+
+            .logs-table th,
+            .logs-table td {
+                padding: 8px;
+            }
+
+            .log-message {
+                max-width: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>
+            <i class="fas fa-chart-line"></i>
+            Admin Dashboard
+        </h1>
+        <div class="header-actions">
+            <button class="btn btn-secondary" onclick="location.reload()">
+                <i class="fas fa-sync"></i> Refresh
+            </button>
+            <button class="btn btn-secondary" onclick="window.history.back()">
+                <i class="fas fa-arrow-left"></i> Back
+            </button>
+        </div>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <h3>Total Users</h3>
+            <div class="stat-value" id="totalUsers">0</div>
+            <div class="stat-change">Active users</div>
+        </div>
+        <div class="stat-card">
+            <h3>Total Messages</h3>
+            <div class="stat-value" id="totalMessages">0</div>
+            <div class="stat-change">All time</div>
+        </div>
+        <div class="stat-card">
+            <h3>Recent Activity</h3>
+            <div class="stat-value" id="recentActivity">0</div>
+            <div class="stat-change">Last 24 hours</div>
+        </div>
+    </div>
+
+    <div class="logs-section">
+        <div class="logs-header">
+            <h2>Activity Logs</h2>
+            <div class="filter-controls">
+                <button class="filter-btn active" onclick="filterLogs('all')">All</button>
+                <button class="filter-btn" onclick="filterLogs('chat')">Chat</button>
+                <button class="filter-btn" onclick="filterLogs('server')">Server</button>
+                <button class="filter-btn" onclick="filterLogs('sql')">SQL</button>
+            </div>
+        </div>
+
+        <table class="logs-table">
+            <thead>
+                <tr>
+                    <th>Time</th>
+                    <th>Level</th>
+                    <th>Message</th>
+                    <th>Source</th>
+                </tr>
+            </thead>
+            <tbody id="logsBody">
+                <tr>
+                    <td colspan="4" class="empty-state">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <p>Loading logs...</p>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    let allLogs = [];
+    let currentFilter = 'all';
+
+    document.addEventListener('DOMContentLoaded', () => {
+        loadStats();
+        loadLogs();
+        setInterval(loadLogs, 5000);
+    });
+
+    function loadStats() {
+        fetch('/admin-stats/')
+            .then(r => r.json())
+            .then(data => {
+                document.getElementById('totalUsers').textContent = data.total_users || 0;
+                document.getElementById('totalMessages').textContent = data.total_messages || 0;
+                document.getElementById('recentActivity').textContent = data.recent_activity || 0;
+            })
+            .catch(err => console.error('Stats error:', err));
+    }
+
+    function loadLogs() {
+        fetch('/admin-logs/')
+            .then(r => r.json())
+            .then(data => {
+                allLogs = data.logs || [];
+                renderLogs();
+            })
+            .catch(err => console.error('Logs error:', err));
+    }
+
+    function renderLogs() {
+        const tbody = document.getElementById('logsBody');
+        const filtered = currentFilter === 'all' 
+            ? allLogs 
+            : allLogs.filter(log => log.source === currentFilter);
+
+        if (filtered.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" class="empty-state"><i class="fas fa-inbox"></i><p>No logs found</p></td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = filtered.map(log => `
+            <tr>
+                <td class="log-time">${log.time}</td>
+                <td><span class="log-level ${log.level.toLowerCase()}">${log.level}</span></td>
+                <td class="log-message">${escapeHtml(log.message)}</td>
+                <td><span class="log-source">${log.source}</span></td>
+            </tr>
+        `).join('');
+    }
+
+    function filterLogs(source) {
+        currentFilter = source;
+        document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+        event.target.classList.add('active');
+        renderLogs();
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+</script>
+</body>
+</html>

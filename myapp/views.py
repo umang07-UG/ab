@@ -373,3 +373,97 @@ def get_typing(request, user_id):
     last = _typing_store.get(key, 0)
     typing = (time.time() - last) < 3
     return JsonResponse({"typing": typing})
+
+
+@custom_login_required
+def admin_dashboard(request):
+    return render(request, 'admin_dashboard.html')
+
+
+@custom_login_required
+def admin_stats(request):
+    total_users = User.objects.count()
+    total_messages = Message.objects.count()
+    from django.utils import timezone
+    from datetime import timedelta
+    recent_activity = Message.objects.filter(
+        timestamp__gte=timezone.now() - timedelta(hours=24)
+    ).count()
+    return JsonResponse({
+        'total_users': total_users,
+        'total_messages': total_messages,
+        'recent_activity': recent_activity
+    })
+
+
+@custom_login_required
+def admin_logs(request):
+    import re
+    from datetime import datetime
+
+    logs_data = []
+    log_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'logs.txt')
+
+    try:
+        with open(log_path, 'r', encoding='utf-8', errors='ignore') as f:
+            lines = f.readlines()
+    except FileNotFoundError:
+        lines = []
+
+    now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+    try:
+        recent_messages = Message.objects.select_related('sender', 'receiver').order_by('-timestamp')[:50]
+        for msg in recent_messages:
+            logs_data.append({
+                'time': msg.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
+                'level': 'INFO',
+                'message': f'Message from {msg.sender.name} → {msg.receiver.name}: "{msg.text[:60]}"',
+                'source': 'chat',
+            })
+    except Exception:
+        pass
+
+    sql_pattern = re.compile(r'^\\(([\\d.]+)\\)\\s+(.+)$', re.DOTALL)
+    changed_pattern = re.compile(r'^(.+) changed, reloading')
+
+    for line in reversed(lines[-300:]):
+        line = line.strip()
+        if not line:
+            continue
+
+        parts = line.split(' | ')
+        if len(parts) == 3:
+            logs_data.append({'time': parts[0], 'level': parts[1], 'message': parts[2], 'source': 'app'})
+            continue
+
+        m = sql_pattern.match(line)
+        if m and ('SELECT' in line or 'INSERT' in line or 'UPDATE' in line or 'DELETE' in line):
+            sql_preview = m.group(2).replace('\\n', ' ').strip()[:120]
+            logs_data.append({'time': now, 'level': 'DEBUG', 'message': f'SQL ({m.group(1)}s): {sql_preview}', 'source': 'sql'})
+            continue
+
+        m = changed_pattern.search(line)
+        if m:
+            logs_data.append({'time': now, 'level': 'WARNING', 'message': f'Reload triggered: {m.group(1).split("/")[-1].split(chr(92))[-1]}', 'source': 'server'})
+            continue
+
+        if any(kw in line for kw in ['Watching for file changes', 'Apps ready', 'autoreload_started', 'Performing system checks']):
+            logs_data.append({'time': now, 'level': 'INFO', 'message': line[:120], 'source': 'server'})
+            continue
+
+        if 10 < len(line) < 200 and not line.startswith('File '):
+            level = 'ERROR' if 'error' in line.lower() or 'exception' in line.lower() or 'traceback' in line.lower() else 'WARNING' if 'warn' in line.lower() or 'changed' in line.lower() else 'INFO'
+            logs_data.append({'time': now, 'level': level, 'message': line[:150], 'source': 'server'})
+
+    seen = set()
+    unique_logs = []
+    for log in logs_data:
+        key = log['message'][:80]
+        if key not in seen:
+            seen.add(key)
+            unique_logs.append(log)
+        if len(unique_logs) >= 100:
+            break
+
+    return JsonResponse({'logs': unique_logs})
