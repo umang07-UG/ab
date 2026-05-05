@@ -367,10 +367,7 @@ def get_typing(request, user_id):
 def admin_dashboard(request):
     if not request.session.get('is_logged_in'):
         return redirect('login')
-    try:
-        return render(request, 'admin_dashboard.html')
-    except Exception as e:
-        return render(request, 'admin_dashboard.html', {'error': str(e)})
+    return render(request, 'admin_dashboard.html')
 
 
 def admin_stats(request):
