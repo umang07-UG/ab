@@ -1,6 +1,5 @@
 import logging
 from datetime import datetime
-from .models import AppLog
 
 
 class DatabaseLogHandler(logging.Handler):
@@ -8,6 +7,7 @@ class DatabaseLogHandler(logging.Handler):
     
     def emit(self, record):
         try:
+            from .models import AppLog
             log_entry = AppLog(
                 level=record.levelname,
                 logger_name=record.name,
