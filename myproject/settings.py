@@ -3,12 +3,9 @@ import os
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# ========================
-# SECURITY
-# ========================
-SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "change-this-in-production")
+SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "django-insecure-change-this-in-production-xyz123")
 
-DEBUG = False
+DEBUG = os.environ.get("DEBUG", "False") == "True"
 
 ALLOWED_HOSTS = [
     "localhost",
@@ -17,15 +14,12 @@ ALLOWED_HOSTS = [
     ".up.railway.app",
     "tree10.up.railway.app",
     ".tailway.app",
-    "tree10.up.tailway.app"
+    "tree10.up.tailway.app",
+    "*"
 ]
 
-# ========================
-# APPLICATIONS
-# ========================
 INSTALLED_APPS = [
     'myapp',
-
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -34,13 +28,9 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 ]
 
-# ========================
-# MIDDLEWARE
-# ========================
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
-
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -51,13 +41,10 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'myproject.urls'
 
-# ========================
-# TEMPLATES
-# ========================
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / "templates"],  # optional but recommended
+        'DIRS': [BASE_DIR / 'templates', BASE_DIR / 'myapp' / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -71,9 +58,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'myproject.wsgi.application'
 
-# ========================
-# DATABASE
-# ========================
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
@@ -81,52 +65,64 @@ DATABASES = {
     }
 }
 
-# ========================
-# STATIC FILES
-# ========================
+# Static files
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [BASE_DIR / 'myapp' / 'static']
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
 
-# ========================
-# MEDIA FILES
-# ========================
+# Media files
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
-# ========================
-# SECURITY (SAFE VERSION)
-# ========================
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Security
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
-
-# ⚠️ Disable for now (Railway safe)
 CSRF_COOKIE_SECURE = False
 SESSION_COOKIE_SECURE = False
 SECURE_SSL_REDIRECT = False
 
-# Enable later when stable
-# SECURE_SSL_REDIRECT = True
-
-# ========================
-# AUTH SETTINGS
-# ========================
+# Auth
 LOGIN_URL = '/login/'
-LOGIN_REDIRECT_URL = '/main/'
+LOGIN_REDIRECT_URL = '/home/'
 LOGOUT_REDIRECT_URL = '/login/'
 
-# ========================
-# LOGGING (SAFE)
-# ========================
+# Logging
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'INFO',
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
 }
 
 CSRF_TRUSTED_ORIGINS = [
     "https://*.railway.app",
     "https://*.up.railway.app",
     "https://*.tailway.app",
-    "https://tree10.up.tailway.app"
+    "https://tree10.up.tailway.app",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
 ]
