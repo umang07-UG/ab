@@ -13,7 +13,11 @@ DEBUG = True
 ALLOWED_HOSTS = [
     "localhost",
     "127.0.0.1",
-    ".railway.app"
+    ".railway.app",
+    ".up.railway.app",
+    "tree10.up.railway.app",
+    ".tailway.app",
+    "tree10.up.tailway.app"
 ]
 
 # ========================
@@ -121,5 +125,8 @@ LOGGING = {
 }
 
 CSRF_TRUSTED_ORIGINS = [
-    "https://*.railway.app"
+    "https://*.railway.app",
+    "https://*.up.railway.app",
+    "https://*.tailway.app",
+    "https://tree10.up.tailway.app"
 ]
