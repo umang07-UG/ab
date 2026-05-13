@@ -280,6 +280,9 @@
         <a href="{% url 'chat' %}" class="nav-btn"><i class="fas fa-comment-dots"></i><span class="tip">Messages</span></a>
         <a href="{% url 'show_logs' %}" class="nav-btn"><i class="fas fa-history"></i><span class="tip">Logs</span></a>
         <a href="#" class="nav-btn active"><i class="fas fa-home"></i><span class="tip">Home</span></a>
+        {% if request.session.is_admin %}
+        <a href="{% url 'admin_dashboard' %}" class="nav-btn"><i class="fas fa-chart-line"></i><span class="tip">Admin Panel</span></a>
+        {% endif %}
         <div class="nav-spacer"></div>
         <a href="{% url 'logout_view' %}" class="nav-btn"><i class="fas fa-sign-out-alt"></i><span class="tip">Sign Out</span></a>
     </aside>
@@ -325,6 +328,13 @@
                             <div><div class="tile-label">Activity</div><div class="tile-desc">View your recent logs</div></div>
                             <i class="fas fa-arrow-up-right tile-arrow"></i>
                         </a>
+                        {% if request.session.is_admin %}
+                        <a href="{% url 'admin_dashboard' %}" class="tile" style="border-color:rgba(139,92,246,0.25);">
+                            <div class="tile-icon" style="background:rgba(139,92,246,0.12);color:#a78bfa;"><i class="fas fa-chart-line"></i></div>
+                            <div><div class="tile-label">Admin Panel</div><div class="tile-desc">Users, logs & server health</div></div>
+                            <i class="fas fa-arrow-up-right tile-arrow"></i>
+                        </a>
+                        {% endif %}
                         <a href="{% url 'logout_view' %}" class="tile tile-out">
                             <div class="tile-icon"><i class="fas fa-sign-out-alt"></i></div>
                             <div><div class="tile-label">Sign Out</div><div class="tile-desc">End your session safely</div></div>
