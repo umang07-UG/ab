@@ -405,6 +405,29 @@
         document.getElementById('sideDate').textContent = short;
     }
     tick(); setInterval(tick, 1000);
+
+    // Real-time maintenance check - no reload needed
+    setInterval(() => {
+        fetch('/admin-maintenance/')
+            .then(r => r.json())
+            .then(d => {
+                if (d.maintenance) {
+                    document.body.innerHTML = `
+                    <div style="position:fixed;inset:0;background:#080810;display:flex;align-items:center;justify-content:center;z-index:99999;font-family:Inter,sans-serif;">
+                        <div style="text-align:center;padding:40px;">
+                            <div style="font-size:64px;animation:spin 3s linear infinite;display:inline-block;">⚙️</div>
+                            <h1 style="font-size:28px;font-weight:900;color:#f0f0ff;margin:20px 0 10px;letter-spacing:-1px;">Under Maintenance</h1>
+                            <p style="color:#6b7280;font-size:14px;line-height:1.7;">We're performing scheduled maintenance.<br>We'll be back shortly!</p>
+                            <div style="margin-top:24px;display:inline-flex;align-items:center;gap:8px;padding:8px 20px;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.25);border-radius:40px;color:#fbbf24;font-size:12px;font-weight:700;">
+                                <span style="width:8px;height:8px;border-radius:50%;background:#f59e0b;animation:blink 1.5s infinite;display:inline-block;"></span>
+                                Maintenance in progress
+                            </div>
+                        </div>
+                        <style>@keyframes spin{to{transform:rotate(360deg)}}@keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}</style>
+                    </div>`;
+                }
+            }).catch(() => {});
+    }, 5000);
 })();
 </script>
 </body>
