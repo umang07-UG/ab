@@ -169,6 +169,7 @@
                         <th>OS</th>
                         <th>IP</th>
                         <th>Last Seen</th>
+                        <th>Location</th>
                     </tr>
                 </thead>
                 <tbody id="usersBody"><tr><td colspan="8" class="empty-state"><i class="fas fa-spinner fa-spin"></i> Loading...</td></tr></tbody>
@@ -265,7 +266,16 @@
                     tbody.innerHTML = '<tr><td colspan="8" class="empty-state">No user sessions found</td></tr>';
                     return;
                 }
-                tbody.innerHTML = d.sessions.map(s => `
+                tbody.innerHTML = d.sessions.map(s => {
+                    const hasLoc = s.latitude && s.longitude;
+                    const coordText = hasLoc ? `${s.latitude.toFixed(4)}, ${s.longitude.toFixed(4)}` : 'N/A';
+                    const viewBtn = hasLoc
+                        ? `<a href="https://www.google.com/maps?q=${s.latitude},${s.longitude}" target="_blank"
+                            style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;background:rgba(59,130,246,0.15);border:1px solid rgba(59,130,246,0.3);border-radius:8px;color:#60a5fa;font-size:11px;font-weight:600;text-decoration:none;margin-left:6px;">
+                            <i class="fas fa-map-marker-alt"></i> View
+                           </a>`
+                        : '';
+                    return `
                     <tr>
                         <td><span class="${s.is_online ? 'dot-online' : 'dot-offline'}"></span> <span class="badge ${s.is_online ? 'badge-online' : 'badge-offline'}">${s.is_online ? 'Online' : 'Offline'}</span></td>
                         <td style="font-weight:600">${esc(s.user)}</td>
@@ -275,7 +285,9 @@
                         <td>${esc(s.os)}</td>
                         <td style="font-family:monospace;font-size:11px;color:var(--muted)">${esc(s.ip)}</td>
                         <td style="color:var(--muted);font-size:11px">${esc(s.last_seen)}</td>
-                    </tr>`).join('');
+                        <td style="font-family:monospace;font-size:11px;white-space:nowrap">${coordText}${viewBtn}</td>
+                    </tr>`;
+                }).join('');
 
                 // update error count from logs
             }).catch(() => {

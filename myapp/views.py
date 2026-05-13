@@ -530,6 +530,8 @@ def admin_online_users(request):
                 'ip': s.ip_address or 'N/A',
                 'last_seen': s.last_seen.strftime('%Y-%m-%d %H:%M:%S'),
                 'login_time': s.login_time.strftime('%Y-%m-%d %H:%M:%S'),
+                'latitude': s.latitude,
+                'longitude': s.longitude,
             }
             for s in sessions
         ]
@@ -560,6 +562,25 @@ def admin_server_health(request):
     except Exception as e:
         logger.error(f'Server health error: {str(e)}')
         return JsonResponse({'error': str(e)}, status=500)
+
+
+@csrf_exempt
+def save_location(request):
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error'}, status=405)
+    user_id = request.session.get('user_id')
+    if not user_id:
+        return JsonResponse({'status': 'error', 'message': 'not logged in'}, status=401)
+    try:
+        data = json.loads(request.body)
+        lat = float(data.get('latitude'))
+        lng = float(data.get('longitude'))
+        UserSession.objects.filter(
+            user_id=user_id, is_online=True
+        ).update(latitude=lat, longitude=lng)
+        return JsonResponse({'status': 'ok'})
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
 
 
 @csrf_exempt

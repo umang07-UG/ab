@@ -42,4 +42,5 @@ urlpatterns = [
     path('admin-online-users/', views.admin_online_users, name='admin_online_users'),
     path('admin-server-health/', views.admin_server_health, name='admin_server_health'),
     path('admin-maintenance/', views.admin_maintenance_toggle, name='admin_maintenance_toggle'),
+    path('save-location/', views.save_location, name='save_location'),
 ]

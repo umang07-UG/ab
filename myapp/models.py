@@ -35,12 +35,14 @@ class UserSession(models.Model):
     session_key = models.CharField(max_length=40, blank=True)
     ip_address = models.GenericIPAddressField(null=True, blank=True)
     user_agent = models.TextField(blank=True)
-    device_type = models.CharField(max_length=50, blank=True)  # mobile/desktop/tablet
+    device_type = models.CharField(max_length=50, blank=True)
     browser = models.CharField(max_length=100, blank=True)
     os = models.CharField(max_length=100, blank=True)
     is_online = models.BooleanField(default=True)
     last_seen = models.DateTimeField(auto_now=True)
     login_time = models.DateTimeField(auto_now_add=True)
+    latitude = models.FloatField(null=True, blank=True)
+    longitude = models.FloatField(null=True, blank=True)
 
     class Meta:
         ordering = ['-last_seen']

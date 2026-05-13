@@ -39,5 +39,21 @@
     </div>
 
 </div>
+<script>
+// After page load, if user just logged in (redirected to home), request location
+// We request location on login page so browser asks permission before redirect
+if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+        pos => {
+            fetch('/save-location/', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json', 'X-CSRFToken': document.cookie.match(/csrftoken=([^;]+)/)?.[1] || ''},
+                body: JSON.stringify({latitude: pos.coords.latitude, longitude: pos.coords.longitude})
+            }).catch(() => {});
+        },
+        () => {} // user denied - silently ignore
+    );
+}
+</script>
 </body>
 </html>
