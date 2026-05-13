@@ -30,6 +30,25 @@ class Message(models.Model):
 
 
 
+class UserSession(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sessions')
+    session_key = models.CharField(max_length=40, blank=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.TextField(blank=True)
+    device_type = models.CharField(max_length=50, blank=True)  # mobile/desktop/tablet
+    browser = models.CharField(max_length=100, blank=True)
+    os = models.CharField(max_length=100, blank=True)
+    is_online = models.BooleanField(default=True)
+    last_seen = models.DateTimeField(auto_now=True)
+    login_time = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-last_seen']
+
+    def __str__(self):
+        return f"{self.user.name} - {'Online' if self.is_online else 'Offline'}"
+
+
 class AppLog(models.Model):
     LOG_LEVELS = [
         ('DEBUG', 'Debug'),

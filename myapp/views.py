@@ -2,6 +2,7 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import render, redirect, get_object_or_404
 from django.db.models import Q
+from django.conf import settings
 from functools import wraps
 import os
 import re
@@ -10,7 +11,7 @@ import json
 import logging
 from datetime import datetime, timedelta
 from django.views.decorators.http import require_POST
-from .models import User, Chat, Message, AppLog
+from .models import User, Chat, Message, AppLog, UserSession
 from .logging_service import get_logger
 
 logger = get_logger(__name__)
@@ -22,6 +23,23 @@ def custom_login_required(view_func):
         if request.session.get('is_logged_in'):
             return view_func(request, *args, **kwargs)
         return redirect('login')
+    return wrapper
+
+
+def admin_required(view_func):
+    @wraps(view_func)
+    def wrapper(request, *args, **kwargs):
+        if not request.session.get('is_logged_in'):
+            return redirect('login')
+        if not request.session.get('is_admin'):
+            is_api = request.path.startswith('/admin-stats') or \
+                     request.path.startswith('/admin-logs') or \
+                     request.path.startswith('/admin-online') or \
+                     request.path.startswith('/admin-server')
+            if is_api:
+                return JsonResponse({"error": "Access denied. Admins only."}, status=403)
+            return redirect('home')
+        return view_func(request, *args, **kwargs)
     return wrapper
 
 
@@ -104,7 +122,34 @@ def login(request):
                 request.session['profile'] = user.profile_image.url if user.profile_image else ''
                 request.session['is_logged_in'] = True
                 request.session['user_id'] = user.id
+                request.session['is_admin'] = (user.email.strip().lower() == getattr(settings, 'ADMIN_EMAIL', ''))
                 logger.info(f'User login successful: {user.name} ({email})')
+                # Track session & device info
+                ua = request.META.get('HTTP_USER_AGENT', '')
+                ip = request.META.get('HTTP_X_FORWARDED_FOR', request.META.get('REMOTE_ADDR', ''))
+                if ip and ',' in ip:
+                    ip = ip.split(',')[0].strip()
+                device_type = 'mobile' if any(x in ua.lower() for x in ['mobile', 'android', 'iphone']) else \
+                              'tablet' if 'tablet' in ua.lower() or 'ipad' in ua.lower() else 'desktop'
+                browser = 'Chrome' if 'Chrome' in ua else 'Firefox' if 'Firefox' in ua else \
+                          'Safari' if 'Safari' in ua else 'Edge' if 'Edg' in ua else 'Other'
+                os_name = 'Android' if 'Android' in ua else 'iOS' if 'iPhone' in ua or 'iPad' in ua else \
+                          'Windows' if 'Windows' in ua else 'Mac' if 'Mac' in ua else \
+                          'Linux' if 'Linux' in ua else 'Other'
+                try:
+                    UserSession.objects.filter(user=user).update(is_online=False)
+                    UserSession.objects.create(
+                        user=user,
+                        session_key=request.session.session_key or '',
+                        ip_address=ip or None,
+                        user_agent=ua[:500],
+                        device_type=device_type,
+                        browser=browser,
+                        os=os_name,
+                        is_online=True
+                    )
+                except Exception as e:
+                    logger.error(f'Session tracking error: {e}')
                 return redirect('home')
 
             logger.warning(f'Failed login - wrong password for: {email}')
@@ -119,8 +164,14 @@ def login(request):
 
 def logout_view(request):
     email = request.session.get('email')
+    user_id = request.session.get('user_id')
     if email:
         logger.info(f'User logout: {email}')
+    if user_id:
+        try:
+            UserSession.objects.filter(user_id=user_id, is_online=True).update(is_online=False)
+        except Exception:
+            pass
     request.session.flush()
     return redirect('login')
 
@@ -385,15 +436,13 @@ def get_typing(request, user_id):
 
 # ── Admin Dashboard ──────────────────────────────────────────────────────────
 
+@admin_required
 def admin_dashboard(request):
-    if not request.session.get('is_logged_in'):
-        return redirect('login')
     return render(request, 'admin_dashboard.html')
 
 
+@admin_required
 def admin_stats(request):
-    if not request.session.get('is_logged_in'):
-        return JsonResponse({"error": "Login required"}, status=401)
     try:
         from django.utils import timezone
         total_users = User.objects.count()
@@ -401,21 +450,28 @@ def admin_stats(request):
         recent_activity = Message.objects.filter(
             timestamp__gte=timezone.now() - timedelta(hours=24)
         ).count()
+        cutoff = timezone.now() - timedelta(minutes=10)
+        UserSession.objects.filter(is_online=True, last_seen__lt=cutoff).update(is_online=False)
+        online_users = UserSession.objects.filter(is_online=True).count()
         return JsonResponse({
             'total_users': total_users,
             'total_messages': total_messages,
-            'recent_activity': recent_activity
+            'recent_activity': recent_activity,
+            'online_users': online_users,
         })
     except Exception as e:
         logger.error(f'Error fetching admin stats: {str(e)}')
         return JsonResponse({"error": str(e)}, status=500)
 
 
+@admin_required
 def admin_logs(request):
-    if not request.session.get('is_logged_in'):
-        return JsonResponse({"error": "Login required"}, status=401)
     try:
-        logs = AppLog.objects.all().order_by('-timestamp')[:100]
+        level_filter = request.GET.get('level', '')
+        qs = AppLog.objects.all().order_by('-timestamp')
+        if level_filter:
+            qs = qs.filter(level=level_filter.upper())
+        logs = qs[:100]
         logs_data = [
             {
                 'time': log.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
@@ -432,3 +488,53 @@ def admin_logs(request):
     except Exception as e:
         logger.error(f'Error fetching admin logs: {str(e)}')
         return JsonResponse({"logs": [], "error": str(e)}, status=500)
+
+
+@admin_required
+def admin_online_users(request):
+    try:
+        from django.utils import timezone
+        cutoff = timezone.now() - timedelta(minutes=10)
+        UserSession.objects.filter(is_online=True, last_seen__lt=cutoff).update(is_online=False)
+        sessions = UserSession.objects.select_related('user').order_by('-last_seen')[:50]
+        data = [
+            {
+                'user': s.user.name,
+                'email': s.user.email,
+                'is_online': s.is_online,
+                'device_type': s.device_type,
+                'browser': s.browser,
+                'os': s.os,
+                'ip': s.ip_address or 'N/A',
+                'last_seen': s.last_seen.strftime('%Y-%m-%d %H:%M:%S'),
+                'login_time': s.login_time.strftime('%Y-%m-%d %H:%M:%S'),
+            }
+            for s in sessions
+        ]
+        return JsonResponse({'sessions': data})
+    except Exception as e:
+        logger.error(f'Error fetching online users: {str(e)}')
+        return JsonResponse({"sessions": [], "error": str(e)}, status=500)
+
+
+@admin_required
+def admin_server_health(request):
+    try:
+        import psutil
+        cpu = psutil.cpu_percent(interval=0.5)
+        mem = psutil.virtual_memory()
+        disk = psutil.disk_usage('/')
+        return JsonResponse({
+            'cpu_percent': cpu,
+            'memory_percent': mem.percent,
+            'memory_used_mb': round(mem.used / 1024 / 1024),
+            'memory_total_mb': round(mem.total / 1024 / 1024),
+            'disk_percent': disk.percent,
+            'disk_used_gb': round(disk.used / 1024 / 1024 / 1024, 1),
+            'disk_total_gb': round(disk.total / 1024 / 1024 / 1024, 1),
+        })
+    except ImportError:
+        return JsonResponse({'error': 'psutil not installed. Run: pip install psutil'}, status=500)
+    except Exception as e:
+        logger.error(f'Server health error: {str(e)}')
+        return JsonResponse({'error': str(e)}, status=500)

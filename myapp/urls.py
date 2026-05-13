@@ -38,4 +38,6 @@ urlpatterns = [
     path('admin-dashboard/', views.admin_dashboard, name='admin_dashboard'),
     path('admin-stats/', views.admin_stats, name='admin_stats'),
     path('admin-logs/', views.admin_logs, name='admin_logs'),
+    path('admin-online-users/', views.admin_online_users, name='admin_online_users'),
+    path('admin-server-health/', views.admin_server_health, name='admin_server_health'),
 ]

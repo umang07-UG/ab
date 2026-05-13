@@ -14,8 +14,10 @@ class Command(BaseCommand):
                 name=admin_name,
                 email=admin_email,
                 password=admin_password,
-                mobile=0
+                mobile=0,
+                is_admin=True
             )
             self.stdout.write(self.style.SUCCESS(f'Admin user created: {admin_email}'))
         else:
-            self.stdout.write(self.style.WARNING(f'Admin user already exists: {admin_email}'))
+            User.objects.filter(email=admin_email).update(is_admin=True)
+            self.stdout.write(self.style.WARNING(f'Admin user already exists, is_admin set to True: {admin_email}'))
