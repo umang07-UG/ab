@@ -20,10 +20,17 @@ logger = get_logger(__name__)
 def custom_login_required(view_func):
     @wraps(view_func)
     def wrapper(request, *args, **kwargs):
-        if request.session.get('is_logged_in'):
-            return view_func(request, *args, **kwargs)
-        return redirect('login')
+        if not request.session.get('is_logged_in'):
+            return redirect('login')
+        # Show maintenance page to non-admin users when maintenance mode is ON
+        if MAINTENANCE_MODE and not request.session.get('is_admin'):
+            return render(request, 'maintenance.html', status=503)
+        return view_func(request, *args, **kwargs)
     return wrapper
+
+
+# ── Maintenance Mode (in-memory flag) ──────────────────────────────────────
+MAINTENANCE_MODE = False
 
 
 def admin_required(view_func):
@@ -553,3 +560,18 @@ def admin_server_health(request):
     except Exception as e:
         logger.error(f'Server health error: {str(e)}')
         return JsonResponse({'error': str(e)}, status=500)
+
+
+@csrf_exempt
+@admin_required
+def admin_maintenance_toggle(request):
+    global MAINTENANCE_MODE
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            MAINTENANCE_MODE = bool(data.get('enabled', False))
+            logger.info(f'Maintenance mode {"ON" if MAINTENANCE_MODE else "OFF"} by admin')
+            return JsonResponse({'maintenance': MAINTENANCE_MODE})
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    return JsonResponse({'maintenance': MAINTENANCE_MODE})
