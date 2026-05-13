@@ -441,6 +441,21 @@ def admin_dashboard(request):
     return render(request, 'admin_dashboard.html')
 
 
+def debug_admin_check(request):
+    """Temporary debug - remove after fixing"""
+    if not request.session.get('is_logged_in'):
+        return JsonResponse({'error': 'not logged in'})
+    session_email = request.session.get('email', '')
+    session_is_admin = request.session.get('is_admin', False)
+    env_admin_email = getattr(settings, 'ADMIN_EMAIL', 'NOT SET')
+    return JsonResponse({
+        'session_email': session_email,
+        'session_is_admin': session_is_admin,
+        'env_admin_email': env_admin_email,
+        'match': session_email.strip().lower() == env_admin_email,
+    })
+
+
 @admin_required
 def admin_stats(request):
     try:

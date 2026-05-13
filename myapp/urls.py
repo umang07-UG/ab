@@ -36,6 +36,7 @@ urlpatterns = [
     path('set-typing/', views.set_typing, name='set_typing'),
     path('get-typing/<int:user_id>/', views.get_typing, name='get_typing'),
     path('admin-dashboard/', views.admin_dashboard, name='admin_dashboard'),
+    path('debug-admin/', views.debug_admin_check, name='debug_admin_check'),
     path('admin-stats/', views.admin_stats, name='admin_stats'),
     path('admin-logs/', views.admin_logs, name='admin_logs'),
     path('admin-online-users/', views.admin_online_users, name='admin_online_users'),
